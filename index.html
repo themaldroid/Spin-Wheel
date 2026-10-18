@@ -17,7 +17,8 @@ main{max-width:520px;margin:0 auto;padding:20px 16px 40px}
 .dhead{display:flex;justify-content:space-between;align-items:center}
 .dhead h2{margin:0;font-size:1.2rem}
 #gear{position:fixed;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));width:40px;height:40px;padding:0;border-radius:50%;font-size:1.2rem;opacity:.22;z-index:5}
-#gear:hover,#gear:focus-visible{opacity:1}
+#gear:hover,#gear:focus-visible,#wgear:hover,#wgear:focus-visible{opacity:1}
+#wgear{position:fixed;left:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));width:40px;height:40px;padding:0;border-radius:50%;font-size:1.1rem;opacity:.22;z-index:5}
 .pinbox{position:fixed;inset:0;background:rgba(0,0,0,.55);display:grid;place-items:center;z-index:20;padding:16px}
 .pinbox .card{width:min(100%,320px);display:grid;gap:10px}
 .pinbox input{padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit}
@@ -64,8 +65,8 @@ ol#hist{margin:0;padding-left:20px;font-size:.92rem;max-height:160px;overflow:au
   </section>
 
   <aside id="drawer" class="drawer" hidden aria-label="Pengaturan">
-    <div class="dhead"><h2>Pengaturan</h2><button id="close">Tutup</button></div>
-    <nav class="tabs"><button data-t="p-prize" class="on">Hadiah</button><button data-t="p-weight">--</button><button data-t="p-hist">Riwayat</button></nav>
+    <div class="dhead"><h2 id="dtitle">Pengaturan</h2><button id="close">Tutup</button></div>
+    <nav class="tabs"><button data-t="p-prize" class="on">Hadiah</button><button data-t="p-hist">Riwayat</button></nav>
     <div class="card" id="p-prize">
       <h2>Daftar hadiah</h2>
       <div id="list"></div>
@@ -93,6 +94,7 @@ ol#hist{margin:0;padding-left:20px;font-size:.92rem;max-height:160px;overflow:au
   </aside>
 </main>
 <button id="gear" aria-label="Buka pengaturan">⚙</button>
+<button id="wgear" aria-label="Buka pengaturan bobot">%</button>
 <div id="pinbox" class="pinbox" hidden>
   <div class="card" role="dialog" aria-label="Masukkan PIN">
     <h2 style="margin:0" id="pintitle">Masukkan PIN</h2>
@@ -222,12 +224,13 @@ let pinTarget='drawer',wUnlocked=false,weightPin='';try{weightPin=localStorage.g
 const panels=['p-prize','p-weight','p-hist'];
 function showTab(id){panels.forEach(p=>{$(p).hidden=p!==id;});document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===id));}
 function askPin(t){pinTarget=t;$('pininput').value='';$('pinerr').textContent='';$('pintitle').textContent=t==='weight'?'PIN menu bobot':'Masukkan PIN';dlg.hidden=false;$('pininput').focus();}
-function openDrawer(){drawer.hidden=false;wUnlocked=false;showTab('p-prize');$('pinset').value=pin;$('wpinset').value=weightPin;$('close').focus();}
+function openDrawer(mode){drawer.hidden=false;wUnlocked=false;const w=mode==='weight';document.querySelector('.tabs').hidden=w;$('dtitle').textContent=w?'Pengaturan bobot':'Pengaturan';showTab(w?'p-weight':'p-prize');$('pinset').value=pin;$('wpinset').value=weightPin;$('close').focus();}
 function closeDrawer(){drawer.hidden=true;wUnlocked=false;$('gear').focus();}
 document.querySelectorAll('.tabs button').forEach(b=>{b.onclick=()=>{if(b.dataset.t==='p-weight'&&weightPin&&!wUnlocked){askPin('weight');return;}showTab(b.dataset.t);};});
 $('wpinset').oninput=e=>{weightPin=e.target.value.trim();try{localStorage.setItem('sw_wpin',weightPin)}catch(_){}};
 $('gear').onclick=()=>{if(!pin){openDrawer();return;}askPin('drawer');};
-$('pinok').onclick=()=>{const ok=$('pininput').value===(pinTarget==='weight'?weightPin:pin);if(!ok){$('pinerr').textContent='PIN salah.';return;}dlg.hidden=true;if(pinTarget==='weight'){wUnlocked=true;showTab('p-weight');}else openDrawer();};
+$('wgear').onclick=()=>{if(!weightPin){openDrawer('weight');return;}askPin('weight');};
+$('pinok').onclick=()=>{const ok=$('pininput').value===(pinTarget==='weight'?weightPin:pin);if(!ok){$('pinerr').textContent='PIN salah.';return;}dlg.hidden=true;openDrawer(pinTarget==='weight'?'weight':undefined);};
 $('pininput').onkeydown=e=>{if(e.key==='Enter')$('pinok').click();};
 $('pincancel').onclick=()=>{dlg.hidden=true;};
 $('close').onclick=closeDrawer;
