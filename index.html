@@ -90,6 +90,7 @@ ol#hist{margin:0;padding-left:20px;font-size:.92rem;max-height:160px;overflow:au
       <h2>Riwayat putaran</h2>
       <ol id="hist"></ol>
       <p class="note" id="stat"></p>
+      <div class="actions"><button id="clrhist">Hapus riwayat</button></div>
     </div>
   </aside>
 </main>
@@ -240,6 +241,8 @@ function save(){try{localStorage.setItem('sw_data',JSON.stringify({items:items.m
 function restore(){try{const d=JSON.parse(localStorage.getItem('sw_data')||'null');if(d&&Array.isArray(d.items)){items=d.items.map(i=>({id:uid++,name:String(i.name||''),w:Math.max(0,+i.w||0),color:i.color||'#888888'}));$('remove').checked=!!d.remove;counts=d.counts||{};total=+d.total||0;histArr=Array.isArray(d.hist)?d.hist:[];return true;}}catch(_){}return false;}
 function renderHist(){$('hist').innerHTML='';histArr.forEach(n=>{const li=document.createElement('li');li.textContent=n;$('hist').appendChild(li);});$('stat').textContent=total?'Total putaran: '+total+' — '+Object.entries(counts).map(([k,v])=>k+' '+v+'× ('+Math.round(v/total*100)+'%)').join(', '):'';}
 $('remove').onchange=save;
+let clrT;
+$('clrhist').onclick=()=>{const b=$('clrhist');if(!b.dataset.sure){b.dataset.sure='1';b.textContent='Yakin? Klik lagi';clearTimeout(clrT);clrT=setTimeout(()=>{delete b.dataset.sure;b.textContent='Hapus riwayat';},3000);return;}clearTimeout(clrT);delete b.dataset.sure;b.textContent='Hapus riwayat';histArr=[];counts={};total=0;renderHist();save();};
 if(!restore())load();
 renderList();draw();renderHist();
 </script>
