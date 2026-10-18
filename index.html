@@ -104,7 +104,7 @@ ol#hist{margin:0;padding-left:20px;font-size:.92rem;max-height:160px;overflow:au
 <script>
 const COLORS=['#e4572e','#f3a712','#29a37a','#2e86ab','#7b5ea7','#d1495b','#4f772d','#3d5a80'];
 const DEFAULT=[['Hadiah Utama',2],['Voucher 50rb',8],['Voucher 20rb',20],['Kaos',10],['Stiker',30],['Coba Lagi',30]];
-let items=[],rot=0,spinning=false,counts={},total=0;
+let items=[],rot=0,spinning=false,counts={},total=0,histArr=[];
 const $=id=>document.getElementById(id);
 const cv=$('c'),ctx=cv.getContext('2d');
 let uid=0;
@@ -143,12 +143,13 @@ function renderList(){
       '<button class="del" aria-label="Hapus">✕</button>';
     const [col,nm,del]=r.children;
     col.value=it.color;nm.value=it.name;
-    col.oninput=()=>{it.color=col.value;draw();};
-    nm.oninput=()=>{it.name=nm.value;draw();renderW();};
+    col.oninput=()=>{it.color=col.value;draw();save();};
+    nm.oninput=()=>{it.name=nm.value;draw();renderW();save();};
     del.onclick=()=>{if(spinning)return;items=items.filter(x=>x!==it);renderList();draw();};
     r.dataset.id=it.id;L.appendChild(r);
   });
   renderW();
+  save();
   validate();
 }
 function pctText(it,tw){return tw>0?((Math.max(0,+it.w||0)/tw)*100).toFixed(1).replace(/\.0$/,'')+'%':'-';}
@@ -167,7 +168,7 @@ function renderW(){
 function updatePct(){
   const tw=sumW();
   [...$('wlist').children].forEach((r,i)=>{r.querySelector('.pct').textContent=pctText(items[i],tw);});
-  validate();
+  save();validate();
 }
 function validate(){
   const w=$('warn');
@@ -205,15 +206,15 @@ function finish(idx){
   spinning=false;const it=items[idx];
   $('result').className='result win';$('result').textContent='🎉 '+it.name;
   counts[it.name]=(counts[it.name]||0)+1;total++;
-  const li=document.createElement('li');li.textContent=it.name;$('hist').prepend(li);
+  histArr.unshift(it.name);if(histArr.length>200)histArr.pop();renderHist();
   $('stat').textContent='Total putaran: '+total+' — '+Object.entries(counts).map(([k,v])=>k+' '+v+'× ('+Math.round(v/total*100)+'%)').join(', ');
-  if($('remove').checked){items.splice(idx,1);renderList();draw();}else validate();
+  if($('remove').checked){items.splice(idx,1);renderList();draw();}else validate();save();
 }
 
 $('spin').onclick=spin;
 $('add').onclick=()=>{if(spinning)return;items.push({id:uid++,name:'Hadiah '+(items.length+1),w:10,color:COLORS[items.length%COLORS.length]});renderList();draw();};
 $('even').onclick=()=>{if(spinning)return;items.forEach(i=>i.w=1);renderList();};
-$('reset').onclick=()=>{if(spinning)return;load();counts={};total=0;$('hist').innerHTML='';$('stat').textContent='';$('result').className='result';$('result').textContent='Tekan Putar untuk mulai';renderList();draw();};
+$('reset').onclick=()=>{if(spinning)return;load();counts={};total=0;histArr=[];$('hist').innerHTML='';$('stat').textContent='';$('result').className='result';$('result').textContent='Tekan Putar untuk mulai';renderList();draw();};
 matchMedia('(prefers-color-scheme:dark)').addEventListener('change',draw);
 let pin='';try{pin=localStorage.getItem('sw_pin')||''}catch(_){}
 const drawer=$('drawer'),dlg=$('pinbox');
@@ -232,7 +233,12 @@ $('pincancel').onclick=()=>{dlg.hidden=true;};
 $('close').onclick=closeDrawer;
 $('pinset').oninput=e=>{pin=e.target.value.trim();try{localStorage.setItem('sw_pin',pin)}catch(_){}};
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!drawer.hidden)closeDrawer();dlg.hidden=true;}});
-load();renderList();draw();
+function save(){try{localStorage.setItem('sw_data',JSON.stringify({items:items.map(i=>({name:i.name,w:i.w,color:i.color})),remove:$('remove').checked,counts,total,hist:histArr}))}catch(_){}}
+function restore(){try{const d=JSON.parse(localStorage.getItem('sw_data')||'null');if(d&&Array.isArray(d.items)){items=d.items.map(i=>({id:uid++,name:String(i.name||''),w:Math.max(0,+i.w||0),color:i.color||'#888888'}));$('remove').checked=!!d.remove;counts=d.counts||{};total=+d.total||0;histArr=Array.isArray(d.hist)?d.hist:[];return true;}}catch(_){}return false;}
+function renderHist(){$('hist').innerHTML='';histArr.forEach(n=>{const li=document.createElement('li');li.textContent=n;$('hist').appendChild(li);});$('stat').textContent=total?'Total putaran: '+total+' — '+Object.entries(counts).map(([k,v])=>k+' '+v+'× ('+Math.round(v/total*100)+'%)').join(', '):'';}
+$('remove').onchange=save;
+if(!restore())load();
+renderList();draw();renderHist();
 </script>
 </body>
 </html>
